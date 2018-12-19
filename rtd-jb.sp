@@ -19,11 +19,10 @@ public Plugin myinfo =
 typedef OnRoll = function void (CCSPlayer pPlayer);
 
 #define MAX_ROLL_LEN 32
-#define MAX_CB_LEN 64
 /*
  * Block 0:				Unique ID
  * Block 1:				Name of the callback inside a DataPack
- * Block 2:				Name inside a DataPack
+ * Block 2:				OnRoll callback inside a DataPack
  */
 ArrayList g_hEffects;
 #define BLOCK_ID 0
@@ -63,35 +62,35 @@ public void OnPluginStart() {
 	AddCommandListener(Command_Inspect, "+lookatweapon");
 	
 	// Create Effects
-	CreateEffect("No Effect", 3, "Roll_DoNothing");
-	CreateEffect("Increased HP", 2, "Roll_IncreaseHp");
-	CreateEffect("Decreased HP", 2, "Roll_DecreaseHp");
-	CreateEffect("Random HP", 2, "Roll_RandomHp"); // Unimplemented
-	CreateEffect("Slowed Down", 1, "Roll_Slowed");
-	CreateEffect("Meep Meep", 1, "Roll_Meep");
-	CreateEffect("Random Speed", 1, "Roll_RandSpeed"); // Unimplemented
-	g_iBlindId = CreateEffect("Blindness", 2, "Roll_Blindness");
-	CreateEffect("Temporary Invisibility", 1, "Roll_Invis");
-	CreateEffect("Spontaneous Ignition", 2, "Roll_Ignite");
-	CreateEffect("Small Armor", 2, "Roll_SmallArmor");
-	CreateEffect("Heavy Armor", 1, "Roll_HeavyArmor");
-	CreateEffect("Grenades", 2, "Roll_Grenades");
-	CreateEffect("Glock", 2, "Roll_Glock");
-	CreateEffect("Deagle", 1, "Roll_Deagle");
-	CreateEffect("Wrench", 2, "Roll_Wrench");
-	CreateEffect("Axe", 2, "Roll_Axe");
-	CreateEffect("Hammer", 2, "Roll_Hammer");
-	CreateEffect("Knife", 2, "Roll_Knife");
-	CreateEffect("Snowballs", 2, "Roll_Snowballs"); // Unimplemented TODO: Find model that needs to be precached
-	CreateEffect("Rubber Bullets", 2, "Roll_RubberBullets"); // Unimplemented
-	CreateEffect("Burning Bullets", 2, "Roll_BurningBullets"); // Unimplemented
-	CreateEffect("Poisoned", 1, "Roll_Poisoned"); // Unimplemented
-	CreateEffect("Guard Model", 1, "Roll_Model"); // Unimplemented
-	CreateEffect("Long Fall Boots", 1, "Roll_FallDamage"); // Unimplemented
-	CreateEffect("Moon Boots", 1, "Roll_LowGrav"); // Unimplemented
-	CreateEffect("Lottery", 1, "Roll_Lottery"); // Unimplemented
-	CreateEffect("Robbery", 1, "Roll_Robbery"); // Unimplemented
-	CreateEffect("Medic", 2, "Roll_Medic"); // Unimplemented
+	CreateEffect("No Effect", 3, Roll_DoNothing);
+	CreateEffect("Increased HP", 2, Roll_IncreaseHp);
+	CreateEffect("Decreased HP", 2, Roll_DecreaseHp);
+	CreateEffect("Random HP", 2, Roll_RandomHp); // Unimplemented
+	CreateEffect("Slowed Down", 1, Roll_Slowed);
+	CreateEffect("Meep Meep", 1, Roll_Meep);
+	CreateEffect("Random Speed", 1, Roll_RandSpeed); // Unimplemented
+	g_iBlindId = CreateEffect("Blindness", 2, Roll_Blindness);
+	CreateEffect("Temporary Invisibility", 1, Roll_Invis);
+	CreateEffect("Spontaneous Ignition", 2, Roll_Ignite);
+	CreateEffect("Small Armor", 2, Roll_SmallArmor);
+	CreateEffect("Heavy Armor", 1, Roll_HeavyArmor);
+	CreateEffect("Grenades", 2, Roll_Grenades);
+	CreateEffect("Glock", 2, Roll_Glock);
+	CreateEffect("Deagle", 1, Roll_Deagle);
+	CreateEffect("Wrench", 2, Roll_Wrench);
+	CreateEffect("Axe", 2, Roll_Axe);
+	CreateEffect("Hammer", 2, Roll_Hammer);
+	CreateEffect("Knife", 2, Roll_Knife);
+	CreateEffect("Snowballs", 2, Roll_Snowballs); // Unimplemented TODO: Find model that needs to be precached
+	CreateEffect("Rubber Bullets", 2, Roll_RubberBullets); // Unimplemented
+	CreateEffect("Burning Bullets", 2, Roll_BurningBullets); // Unimplemented
+	CreateEffect("Poisoned", 1, Roll_Poisoned); // Unimplemented
+	CreateEffect("Guard Model", 1, Roll_Model); // Unimplemented
+	CreateEffect("Long Fall Boots", 1, Roll_FallDamage); // Unimplemented
+	CreateEffect("Moon Boots", 1, Roll_LowGrav); // Unimplemented
+	CreateEffect("Lottery", 1, Roll_Lottery); // Unimplemented
+	CreateEffect("Robbery", 1, Roll_Robbery); // Unimplemented
+	CreateEffect("Medic", 2, Roll_Medic); // Unimplemented
 	
 	RegConsoleCmd("sm_rtdchances", Command_RtdChances);
 	RegConsoleCmd("sm_rtd", Command_Rtd);
@@ -296,23 +295,12 @@ public Action Command_Rtd(int iClient, int iArgs) {
 	hPack.ReadString(sName, sizeof(sName));
 	PrintToChat(iClient, PREFIX ... "You rolled a %d and got %s!", g_iRoll[iClient], sName);
 	
-	// Find callback
+	// Get callback datapack
 	hPack = g_hEffects.Get(iIndex, BLOCK_CALLBACK);
-	char sCbName[MAX_CB_LEN];
 	hPack.Reset();
-	hPack.ReadString(sCbName, sizeof(sCbName));
-	Function callback = GetFunctionByName(null, sCbName);
-	
-	// Ensure callback is valid
-	if(callback == INVALID_FUNCTION) {
-		ReplyToCommand(iClient, PREFIX ... "An internal error occured. Please try again.");
-		LogError("Failed to find callback \"%s\", name %s", sCbName, sName);
-		g_iRoll[iClient] = -1;
-		return Plugin_Handled;
-	}
 	
 	// Call the function for the roll rolled
-	Call_StartFunction(null, callback);
+	Call_StartFunction(null, hPack.ReadFunction());
 	Call_PushCell(iClient);
 	Call_Finish();
 	
@@ -366,7 +354,7 @@ public Action Command_RtdChances(int iClient, int iArgs) {
 	return Plugin_Handled;
 }
 
-int CreateEffect(const char[] sName, int iTickets, const char[] sCallbackName) {
+int CreateEffect(const char[] sName, int iTickets, OnRoll callback) {
 	// Used as a unique id for each effect
 	static int iId = 0;
 	
@@ -376,7 +364,7 @@ int CreateEffect(const char[] sName, int iTickets, const char[] sCallbackName) {
 		hNamePack.WriteString(sName);
 		int iIndex = g_hEffects.Push(iId);
 		DataPack hCbPack = new DataPack();
-		hCbPack.WriteString(sCallbackName);
+		hCbPack.WriteFunction(callback);
 		g_hEffects.Set(iIndex, hCbPack, BLOCK_CALLBACK);
 		g_hEffects.Set(iIndex, hNamePack, BLOCK_NAME);
 	}
@@ -435,19 +423,10 @@ public Action Command_ForceRoll(int iClient, int iArgs) {
 	
 	// Get callback to call
 	hPack = g_hEffects.Get(iIndex, BLOCK_CALLBACK);
-	char sCallback[MAX_CB_LEN];
 	hPack.Reset();
-	hPack.ReadString(sCallback, sizeof(sCallback));
-	Function callback = GetFunctionByName(null, sCallback);
-	
-	if(callback == INVALID_FUNCTION) {
-		LogError("Cannot find callback \"%s\" for roll %s. Check callback spelling.");
-		ReplyToCommand(iClient, "Internal error, callback not found.");
-		return Plugin_Handled;
-	}
 	
 	// Give them the roll
-	Call_StartFunction(null, callback);
+	Call_StartFunction(null, hPack.ReadFunction());
 	Call_PushCell(iClient);
 	Call_Finish();
 	
