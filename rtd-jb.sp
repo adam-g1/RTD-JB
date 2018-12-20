@@ -31,7 +31,11 @@ ArrayList g_hEffects;
 
 bool g_bBetweenRounds = false;
 
+
+// Ids for Rolls that need special resets
 int g_iBlindId;
+int g_iLowGravId;
+int g_iInvisId;
 
 // Stores the Unique ID of the roll the player rolled.
 int g_iRoll[MAXPLAYERS + 1];
@@ -84,7 +88,7 @@ public void OnPluginStart() {
 	CreateEffect("Meep Meep", 1, Roll_Meep);
 	CreateEffect("Random Speed", 1, Roll_RandSpeed);
 	g_iBlindId = CreateEffect("Blindness", 2, Roll_Blindness);
-	CreateEffect("Temporary Invisibility", 1, Roll_Invis);
+	g_iInvisId = CreateEffect("Temporary Invisibility", 1, Roll_Invis);
 	CreateEffect("Spontaneous Ignition", 2, Roll_Ignite);
 	CreateEffect("Small Armor", 2, Roll_SmallArmor);
 	CreateEffect("Heavy Armor", 1, Roll_HeavyArmor);
@@ -101,7 +105,7 @@ public void OnPluginStart() {
 	CreateEffect("Poisoned", 1, Roll_Poisoned); // Unimplemented
 	CreateEffect("Guard Model", 1, Roll_Model); // Unimplemented
 	CreateEffect("Long Fall Boots", 1, Roll_FallDamage); // Unimplemented
-	CreateEffect("Moon Boots", 1, Roll_LowGrav); // Unimplemented
+	g_iLowGravId = CreateEffect("Moon Boots", 1, Roll_LowGrav); // Unimplemented
 	CreateEffect("Lottery", 1, Roll_Lottery); // Unimplemented
 	CreateEffect("Robbery", 1, Roll_Robbery); // Unimplemented
 	CreateEffect("Medic", 2, Roll_Medic); // Unimplemented
@@ -422,9 +426,8 @@ int CreateEffect(const char[] sName, int iTickets, OnRoll callback) {
 
 void ResetPlayer(CCSPlayer p) {
 	// Player is currently blinded
-	if(g_iRoll[p.Index] == g_iBlindId) {
+	if(p.InGame && g_iRoll[p.Index] == g_iBlindId) {
 		// Removes current Fade usermessage
-		// We dont care about any values other than 
 		Handle hMsg = StartMessageOne("Fade", p.Index, USERMSG_RELIABLE | USERMSG_BLOCKHOOKS);
 		PbSetInt(hMsg, "duration", 5000);
 		PbSetInt(hMsg, "hold_time", 1500);
@@ -432,6 +435,23 @@ void ResetPlayer(CCSPlayer p) {
 		PbSetColor(hMsg, "clr", {255, 255, 255, 0}); // Full alpha to be invisible
 		EndMessage();
 	}
+	else if(p.InGame && g_iRoll[p.Index] == g_iLowGravId) { // User has low grav
+		p.Gravity = 1.0;
+	}
+	else if(g_iRoll[p.Index] == g_iInvisId) { // User has invis
+		delete g_hInvisTimer[p.Index];
+		// TODO: Verify that player render color stays through round change,
+		// This part may be unnecessary.
+		if(p.InGame) {
+			int iColor[4];
+			p.GetRenderColor(iColor);
+			iColor[3] = 255;
+			p.SetRenderColor(iColor);
+		}
+		g_bHasInvis[p.Index] = false;
+	}
+	
+	g_iRoll[p.Index] = -1;
 }
 
 // Debug command used to test rolls.
