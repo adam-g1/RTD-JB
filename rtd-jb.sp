@@ -50,6 +50,7 @@ ConVar g_hMeepMin;
 ConVar g_hMeepMax;
 ConVar g_hMaxGlockReserve;
 ConVar g_hMaxDeagReserve;
+ConVar g_hIgniteTime;
 
 public void OnPluginStart() {
 	g_hEffects = new ArrayList(3);
@@ -163,6 +164,10 @@ public void OnPluginStart() {
 	g_hMaxDeagReserve = AutoExecConfig_CreateConVar("sm_rtd_deag_max_mags",
 							"2",
 							"Maximum amount of extra mags to give for deags");
+							
+	g_hIgniteTime = AutoExecConfig_CreateConVar("sm_rtd_ignite_time",
+							"7.5",
+							"How long the ignite rtd should ignite the user for");
 }
 
 // Forces sv_disable_immunity_alpha to be enabled when changed.
@@ -487,7 +492,7 @@ public void Roll_Invis(CCSPlayer p) {
 }
 
 public void Roll_Ignite(CCSPlayer p) {
-	p.Ignite(7.5);
+	p.Ignite(g_hIgniteTime.FloatValue);
 }
 
 public void Roll_SmallArmor(CCSPlayer p) {
