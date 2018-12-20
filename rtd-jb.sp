@@ -59,6 +59,8 @@ ConVar g_hRobberyMin;
 ConVar g_hRobberyMax;
 ConVar g_hLotteryMin;
 ConVar g_hLotteryMax;
+ConVar g_hSnowballAmount;
+ConVar g_hLowGrav;
 
 public void OnPluginStart() {
 	g_hEffects = new ArrayList(3);
@@ -198,6 +200,14 @@ public void OnPluginStart() {
 	g_hRobberyMax = AutoExecConfig_CreateConVar("sm_rtd_robbery_min", 
 							"3500", 
 							"Maximum lottery amount");
+							
+	g_hSnowballAmount = AutoExecConfig_CreateConVar("sm_rtd_snowball_amount", 
+							"3", 
+							"How many snowballs to give");
+							
+	g_hLowGrav = AutoExecConfig_CreateConVar("sm_rtd_low_grav_amount", 
+							"0.9", 
+							"Gravity to use for low grav (1.0 = normal)");
 }
 
 // Forces sv_disable_immunity_alpha to be enabled when changed.
@@ -625,4 +635,18 @@ public void Roll_Robbery(CCSPlayer p) {
 	p.Money = iMoney;
 	
 	PrintToChat(p.Index, PREFIX ... "You lost $%d from a robbery.", iAmount);
+}
+
+public void Roll_Snowballs(CCSPlayer p) {
+	for(int i = 0; i < g_hSnowballAmount.IntValue;i++) {
+		GivePlayerWeapon(p, "weapon_snowball");
+	}
+}
+
+public void Roll_Medic(CCSPlayer p) {
+	GivePlayerWeapon(p, "weapon_healthshot");
+}
+
+public void Roll_LowGrav(CCSPlayer p) {
+	p.Gravity = g_hLowGrav.FloatValue;
 }
