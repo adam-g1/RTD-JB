@@ -106,6 +106,9 @@ public void OnPluginStart() {
 	hImmAlpha.AddChangeHook(OnAlphaChange);
 	
 	// ConVars
+	
+	AutoExecConfig_SetFile("plugin.rtd-jb");
+	
 	g_hInvisTime = AutoExecConfig_CreateConVar("sm_rtd_invis_time", 
 							"7.0", 
 							"How long full invisibility should last for Invis RTD");
