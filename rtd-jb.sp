@@ -463,6 +463,15 @@ public void Roll_Meep(CCSPlayer p) {
 	p.Speed = GetRandomFloat(g_hMeepMin.FloatValue, g_hMeepMax.FloatValue);
 }
 
+public void Roll_RandSpeed(CCSPlayer p) {
+	if(GetRandomInt(0,1) % 2) {
+		Roll_Slowed(p);
+	}
+	else {
+		Roll_Meep(p);
+	}
+}
+
 public void Roll_Blindness(CCSPlayer p) {
 	Handle hMsg = StartMessageOne("Fade", p.Index, USERMSG_RELIABLE | USERMSG_BLOCKHOOKS);
 	PbSetInt(hMsg, "duration", 5000); // TODO: find correct duration
