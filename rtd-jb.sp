@@ -35,8 +35,12 @@ int g_iBlindId;
 
 // Stores the Unique ID of the roll the player rolled.
 int g_iRoll[MAXPLAYERS + 1];
+
 bool g_bHasInvis[MAXPLAYERS + 1];
 Handle g_hInvisTimer[MAXPLAYERS + 1];
+
+// CSGO ConVars used
+ConVar g_hMaxMoney;
 
 // Custom ConVars
 ConVar g_hInvisTime;
@@ -51,6 +55,10 @@ ConVar g_hMeepMax;
 ConVar g_hMaxGlockReserve;
 ConVar g_hMaxDeagReserve;
 ConVar g_hIgniteTime;
+ConVar g_hRobberyMin;
+ConVar g_hRobberyMax;
+ConVar g_hLotteryMin;
+ConVar g_hLotteryMax;
 
 public void OnPluginStart() {
 	g_hEffects = new ArrayList(3);
@@ -62,14 +70,17 @@ public void OnPluginStart() {
 	// Used for invisibility
 	AddCommandListener(Command_Inspect, "+lookatweapon");
 	
+	// CSGO ConVars
+	g_hMaxMoney = FindConVar("mp_maxmoney");
+	
 	// Create Effects
 	CreateEffect("No Effect", 3, Roll_DoNothing);
 	CreateEffect("Increased HP", 2, Roll_IncreaseHp);
 	CreateEffect("Decreased HP", 2, Roll_DecreaseHp);
-	CreateEffect("Random HP", 2, Roll_RandomHp); // Unimplemented
+	CreateEffect("Random HP", 2, Roll_RandomHp); 
 	CreateEffect("Slowed Down", 1, Roll_Slowed);
 	CreateEffect("Meep Meep", 1, Roll_Meep);
-	CreateEffect("Random Speed", 1, Roll_RandSpeed); // Unimplemented
+	CreateEffect("Random Speed", 1, Roll_RandSpeed);
 	g_iBlindId = CreateEffect("Blindness", 2, Roll_Blindness);
 	CreateEffect("Temporary Invisibility", 1, Roll_Invis);
 	CreateEffect("Spontaneous Ignition", 2, Roll_Ignite);
@@ -171,6 +182,22 @@ public void OnPluginStart() {
 	g_hIgniteTime = AutoExecConfig_CreateConVar("sm_rtd_ignite_time",
 							"7.5",
 							"How long the ignite rtd should ignite the user for");
+							
+	g_hLotteryMin = AutoExecConfig_CreateConVar("sm_rtd_lottery_min", 
+							"1000", 
+							"Minimum lottery amount");
+							
+	g_hLotteryMax = AutoExecConfig_CreateConVar("sm_rtd_lottery_max", 
+							"5000", 
+							"Maximum lottery amount");
+							
+	g_hRobberyMin = AutoExecConfig_CreateConVar("sm_rtd_robbery_min", 
+							"500", 
+							"Maximum lottery amount");
+							
+	g_hRobberyMax = AutoExecConfig_CreateConVar("sm_rtd_robbery_min", 
+							"3500", 
+							"Maximum lottery amount");
 }
 
 // Forces sv_disable_immunity_alpha to be enabled when changed.
@@ -562,4 +589,40 @@ public void Roll_Hammer(CCSPlayer p) {
 public void Roll_Knife(CCSPlayer p) {
 	CWeapon wep = GivePlayerWeapon(p, "weapon_knife");
 	p.EquipItem(wep);
+}
+
+int Min(int x, int y) {
+	return x < y ? x : y;
+}
+
+int Max(int x, int y) {
+	return x > y ? x : y;
+}
+
+public void Roll_Lottery(CCSPlayer p) {
+	int iMoney = p.Money;
+	
+	// divided by 100 for pretty numbers only
+	int iAmount = GetRandomInt(g_hLotteryMin.IntValue, g_hLotteryMax.IntValue) / 100;
+	
+	// Ensure player doesn't exceed mp_maxmoney value
+	iMoney = Min(iMoney + iAmount, g_hMaxMoney.IntValue);
+	
+	p.Money = iMoney;
+	
+	PrintToChat(p.Index, PREFIX ... "You won $%d from the lottery!", iAmount);
+}
+
+public void Roll_Robbery(CCSPlayer p) {
+	int iMoney = p.Money;
+	
+	// divided by 100 for pretty numbers only
+	int iAmount = GetRandomInt(g_hRobberyMin.IntValue, g_hRobberyMax.IntValue) / 100;
+	
+	// Ensure player doesn't underflow
+	iMoney = Max(iMoney - iAmount, 0);
+	
+	p.Money = iMoney;
+	
+	PrintToChat(p.Index, PREFIX ... "You lost $%d from a robbery.", iAmount);
 }
