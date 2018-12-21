@@ -1,6 +1,7 @@
 #include <sourcemod>
 #include <ccsplayer>
 #include <AutoExecConfig>
+#include <sdkhooks>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -36,6 +37,9 @@ bool g_bBetweenRounds = false;
 int g_iBlindId;
 int g_iLowGravId;
 int g_iInvisId;
+int g_iFallId;
+int g_iBurningBulletId;
+int g_iRubberBulletId;
 
 // Stores the Unique ID of the roll the player rolled.
 int g_iRoll[MAXPLAYERS + 1];
@@ -65,6 +69,10 @@ ConVar g_hLotteryMin;
 ConVar g_hLotteryMax;
 ConVar g_hSnowballAmount;
 ConVar g_hLowGrav;
+ConVar g_hMaxFallNegate;
+ConVar g_hFallReduce;
+ConVar g_hBurnBulletTime;
+ConVar g_hRubberBulletReduce;
 
 public void OnPluginStart() {
 	g_hEffects = new ArrayList(3);
@@ -99,16 +107,16 @@ public void OnPluginStart() {
 	CreateEffect("Axe", 2, Roll_Axe);
 	CreateEffect("Hammer", 2, Roll_Hammer);
 	CreateEffect("Knife", 2, Roll_Knife);
-	CreateEffect("Snowballs", 2, Roll_Snowballs); // Unimplemented TODO: Find model that needs to be precached
-	CreateEffect("Rubber Bullets", 2, Roll_RubberBullets); // Unimplemented
-	CreateEffect("Burning Bullets", 2, Roll_BurningBullets); // Unimplemented
+	CreateEffect("Snowballs", 2, Roll_Snowballs); // TODO: Find model that needs to be precached
+	g_iRubberBulletId = CreateEffect("Rubber Bullets", 2, Roll_RubberBullets); 
+	g_iBurningBulletId = CreateEffect("Burning Bullets", 2, Roll_BurningBullets);
 	CreateEffect("Poisoned", 1, Roll_Poisoned); // Unimplemented
 	CreateEffect("Guard Model", 1, Roll_Model); // Unimplemented
-	CreateEffect("Long Fall Boots", 1, Roll_FallDamage); // Unimplemented
-	g_iLowGravId = CreateEffect("Moon Boots", 1, Roll_LowGrav); // Unimplemented
-	CreateEffect("Lottery", 1, Roll_Lottery); // Unimplemented
-	CreateEffect("Robbery", 1, Roll_Robbery); // Unimplemented
-	CreateEffect("Medic", 2, Roll_Medic); // Unimplemented
+	g_iFallId = CreateEffect("Long Fall Boots", 1, Roll_FallDamage);
+	g_iLowGravId = CreateEffect("Moon Boots", 1, Roll_LowGrav);
+	CreateEffect("Lottery", 1, Roll_Lottery);
+	CreateEffect("Robbery", 1, Roll_Robbery);
+	CreateEffect("Medic", 2, Roll_Medic); 
 	
 	RegConsoleCmd("sm_rtdchances", Command_RtdChances);
 	RegConsoleCmd("sm_rtd", Command_Rtd);
@@ -212,6 +220,69 @@ public void OnPluginStart() {
 	g_hLowGrav = AutoExecConfig_CreateConVar("sm_rtd_low_grav_amount", 
 							"0.9", 
 							"Gravity to use for low grav (1.0 = normal)");
+							
+	g_hMaxFallNegate = AutoExecConfig_CreateConVar("sm_rtd_fall_negate_dmg",
+							"40",
+							"Maximum amount of fall damage to completely negate");
+	
+	g_hFallReduce = AutoExecConfig_CreateConVar("sm_rtd_fall_reduce",
+							"0.75",
+							"Percentage of damage to take after reducing fall damage\n0.75 = take 75% of damage");
+							
+	g_hBurnBulletTime = AutoExecConfig_CreateConVar("sm_rtd_burning_bullet_time",
+							"2.5",
+							"How long should burning bullets burn the victim for");
+							
+	g_hRubberBulletReduce = AutoExecConfig_CreateConVar("sm_rtd_rubber_bullet_reduce",
+							"0.70",
+							"Percentage of damage to give after reducing damage\n0.70 = give 70% of damage");
+	
+	// Late Load Support	
+	for(int i = 1; i < MaxClients; i++) {
+		if(IsClientInGame(i)) {
+			OnClientPutInServer(i);
+		}
+	}
+}
+
+public void OnClientPutInServer(int iClient) {
+	SDKHook(iClient, SDKHook_OnTakeDamageAlive, OnTakeDamageAlive);
+}
+
+public Action OnTakeDamageAlive(int iVictim, int &iAttacker, int &iInflictor, float &fDmg,
+		int &iDmgType, int &iWeapon, float fDmgForce[3], float fDmgPos[3], int iDmgCustom) {
+			
+	// If fall damage and user has Long Fall Boots
+	if(iDmgType & DMG_FALL && g_iRoll[iAttacker] == g_iFallId) {
+		
+		// Damage should be negated
+		if(fDmg < g_hMaxFallNegate.FloatValue) {
+			fDmg = 0.0;
+			return Plugin_Changed;
+		}
+		else { // Reduce damage
+			fDmg *= g_hFallReduce.FloatValue;
+			return Plugin_Changed;
+		}
+	}
+
+	// Valid attacker
+	if(!CCSPlayer(iAttacker).IsNull) {
+		
+		// User has burning bullets and damage was from a bullet
+		if(g_iRoll[iAttacker] == g_iBurningBulletId && iDmgType & DMG_BULLET) {
+			// Extinguish to prevent multiple fires
+			ExtinguishEntity(iVictim);
+			IgniteEntity(iVictim, g_hBurnBulletTime.FloatValue);
+		}
+		// User has rubber bullets and damage was from a bullet
+		else if(g_iRoll[iAttacker] == g_iRubberBulletId && iDmgType & DMG_BULLET) {
+			fDmg *= g_hRubberBulletReduce.FloatValue;
+			return Plugin_Changed;
+		}
+	}
+	
+	return Plugin_Continue;
 }
 
 // Forces sv_disable_immunity_alpha to be enabled when changed.
@@ -669,4 +740,16 @@ public void Roll_Medic(CCSPlayer p) {
 
 public void Roll_LowGrav(CCSPlayer p) {
 	p.Gravity = g_hLowGrav.FloatValue;
+}
+
+public void Roll_RubberBullets(CCSPlayer p) {
+	// TODO: Tell them how much damage is reduced by?
+}
+
+public void Roll_BurningBullets(CCSPlayer p) {
+	// Do nothing
+}
+
+public void Roll_FallDamage(CCSPlayer p) {
+	// Do Nothing
 }
