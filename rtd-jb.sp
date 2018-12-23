@@ -2,6 +2,7 @@
 #include <ccsplayer>
 #include <AutoExecConfig>
 #include <sdkhooks>
+#include <jb_chat>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -422,13 +423,13 @@ public Action Command_Rtd(int iClient, int iArgs) {
 	
 	// Already Rolled
 	if(g_iRoll[iClient] != -1) {
-		ReplyToCommand(iClient, PREFIX ... "You have already rolled!");
+		JB_ReplyToCommand(iClient, PREFIX ... "{RED}You have already rolled!");
 		return Plugin_Handled;
 	}
 	
 	// Don't allow rtd between rounds
 	if(g_bBetweenRounds) {
-		ReplyToCommand(iClient, PREFIX ... "You cannot rtd between rounds!");
+		JB_ReplyToCommand(iClient, PREFIX ... "{RED}You cannot rtd between rounds!");
 		return Plugin_Handled;
 	}
 	
@@ -443,7 +444,7 @@ public Action Command_Rtd(int iClient, int iArgs) {
 	DataPack hPack = g_hEffects.Get(iIndex, BLOCK_NAME);
 	hPack.Reset();
 	hPack.ReadString(sName, sizeof(sName));
-	PrintToChat(iClient, PREFIX ... "You rolled a %d and got %s!", g_iRoll[iClient], sName);
+	JB_PrintToChat(iClient, PREFIX ... "{LIGHTBLUE}You rolled a {GREEN}%d{LIGHTBLUE} and got {ORANGE}%s{LIGHTBLUE}!", g_iRoll[iClient], sName);
 	
 	// Get callback datapack
 	hPack = g_hEffects.Get(iIndex, BLOCK_CALLBACK);
@@ -494,7 +495,7 @@ public Action Command_RtdChances(int iClient, int iArgs) {
 	
 	// Notify check for console if command was from chat
 	if(GetCmdReplySource() == SM_REPLY_TO_CHAT) {
-		PrintToChat(iClient, PREFIX ... "Check console for details.");
+		JB_PrintToChat(iClient, PREFIX ... "{ORANGE}Check console for details.");
 	}
 	
 	// Cleanup
@@ -651,7 +652,7 @@ public void Roll_Blindness(CCSPlayer p) {
 
 public void Roll_Invis(CCSPlayer p) {
 	g_bHasInvis[p.Index] = true;
-	PrintToChat(p.Index, PREFIX ... "Press Inspect to use your invisiblity!");
+	JB_PrintToChat(p.Index, PREFIX ... "{ORANGE}Press Inspect to use your invisiblity!");
 }
 
 public void Roll_Ignite(CCSPlayer p) {
@@ -743,7 +744,7 @@ public void Roll_Lottery(CCSPlayer p) {
 	
 	p.Money = iMoney;
 	
-	PrintToChat(p.Index, PREFIX ... "You won $%d from the lottery!", iAmount);
+	JB_PrintToChat(p.Index, PREFIX ... "{LIGHTGREEN}You won {GREEN}$%d{LIGHTGREEN} from the lottery!", iAmount);
 }
 
 public void Roll_Robbery(CCSPlayer p) {
@@ -757,7 +758,7 @@ public void Roll_Robbery(CCSPlayer p) {
 	
 	p.Money = iMoney;
 	
-	PrintToChat(p.Index, PREFIX ... "You lost $%d from a robbery.", iAmount);
+	JB_PrintToChat(p.Index, PREFIX ... "{ORANGE}You lost {RED}$%d {ORANGE}from a robbery.", iAmount);
 }
 
 public void Roll_Snowballs(CCSPlayer p) {
