@@ -259,6 +259,9 @@ public void OnPluginStart() {
 	g_hPoisonDmg = AutoExecConfig_CreateConVar("sm_rtd_poison_dmg",
 							"5",
 							"Amount of damage each tick of poison does");
+							
+	AutoExecConfig_ExecuteFile();
+	AutoExecConfig_CleanFile();
 	
 	// Late Load Support	
 	for(int i = 1; i < MaxClients; i++) {
