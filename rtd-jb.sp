@@ -46,7 +46,10 @@ int g_iRoll[MAXPLAYERS + 1];
 
 bool g_bHasInvis[MAXPLAYERS + 1];
 Handle g_hInvisTimer[MAXPLAYERS + 1];
+Handle g_hPoisonTimer[MAXPLAYERS + 1];
 
+int g_iPrePoisonColor[MAXPLAYERS + 1][4];
+int g_iLastHealth[MAXPLAYERS + 1];
 // CSGO ConVars used
 ConVar g_hMaxMoney;
 
@@ -73,6 +76,9 @@ ConVar g_hMaxFallNegate;
 ConVar g_hFallReduce;
 ConVar g_hBurnBulletTime;
 ConVar g_hRubberBulletReduce;
+ConVar g_hPoisonInterval;
+ConVar g_hPoisonStopChance;
+ConVar g_hPoisonDmg;
 
 public void OnPluginStart() {
 	g_hEffects = new ArrayList(3);
@@ -110,8 +116,8 @@ public void OnPluginStart() {
 	CreateEffect("Snowballs", 2, Roll_Snowballs); // TODO: Find model that needs to be precached
 	g_iRubberBulletId = CreateEffect("Rubber Bullets", 2, Roll_RubberBullets); 
 	g_iBurningBulletId = CreateEffect("Burning Bullets", 2, Roll_BurningBullets);
-	CreateEffect("Poisoned", 1, Roll_Poisoned); // Unimplemented
-	CreateEffect("Guard Model", 1, Roll_Model); // Unimplemented
+	CreateEffect("Poisoned", 1, Roll_Poisoned);
+	CreateEffect("Guard Model", 1, Roll_Model);
 	g_iFallId = CreateEffect("Long Fall Boots", 1, Roll_FallDamage);
 	g_iLowGravId = CreateEffect("Moon Boots", 1, Roll_LowGrav);
 	CreateEffect("Lottery", 1, Roll_Lottery);
@@ -236,6 +242,23 @@ public void OnPluginStart() {
 	g_hRubberBulletReduce = AutoExecConfig_CreateConVar("sm_rtd_rubber_bullet_reduce",
 							"0.70",
 							"Percentage of damage to give after reducing damage\n0.70 = give 70% of damage");
+							
+	g_hPoisonInterval = AutoExecConfig_CreateConVar("sm_rtd_poison_interval",
+							"0.2",
+							"How often poison should damage in seconds");
+	
+	g_hPoisonStopChance = AutoExecConfig_CreateConVar("sm_rtd_poison_cure_chance",
+							"40",
+							"Chance for poison to be cured",
+							_,
+							true,
+							0.0,
+							true,
+							100.0);
+							
+	g_hPoisonDmg = AutoExecConfig_CreateConVar("sm_rtd_poison_dmg",
+							"5",
+							"Amount of damage each tick of poison does");
 	
 	// Late Load Support	
 	for(int i = 1; i < MaxClients; i++) {
@@ -247,6 +270,10 @@ public void OnPluginStart() {
 
 public void OnClientPutInServer(int iClient) {
 	SDKHook(iClient, SDKHook_OnTakeDamageAlive, OnTakeDamageAlive);
+}
+
+public void OnClientDisconnect(int iClient) {
+	ResetPlayer(CCSPlayer(iClient));
 }
 
 public Action OnTakeDamageAlive(int iVictim, int &iAttacker, int &iInflictor, float &fDmg,
@@ -522,6 +549,8 @@ void ResetPlayer(CCSPlayer p) {
 		g_bHasInvis[p.Index] = false;
 	}
 	
+	delete g_hPoisonTimer[p.Index];
+	
 	g_iRoll[p.Index] = -1;
 }
 
@@ -752,4 +781,64 @@ public void Roll_BurningBullets(CCSPlayer p) {
 
 public void Roll_FallDamage(CCSPlayer p) {
 	// Do Nothing
+}
+
+public void Roll_Model(CCSPlayer pRoller) {
+	// Loop until we find a valid CT to steal their model
+	for(CCSPlayer p = CCSPlayer(1); !p.IsNull; CCSPlayer.Next(p)) {
+		
+		// Player in Game & CT
+		if(p.InGame && p.Team == CS_TEAM_CT) {
+			
+			// Get model of CT
+			char sModel[PLATFORM_MAX_PATH];
+			p.GetModel(sModel, sizeof(sModel));
+			
+			// Apply it to the roller
+			pRoller.SetModel(sModel);
+			
+			break;
+		}
+	}
+}
+
+public void Roll_Poisoned(CCSPlayer p) {
+	
+	// Store render color in case another plugin changed it before us
+	p.GetRenderColor(g_iPrePoisonColor[p.Index]);
+	// Used to check for healing later
+	g_iLastHealth[p.Index] = p.Health;
+	
+	DataPack hPack = new DataPack();
+	hPack.WriteCell(p.UserID);
+	hPack.WriteCell(p);
+	g_hPoisonTimer[p.Index] = CreateDataTimer(g_hPoisonInterval.FloatValue, Timer_Poison, hPack);
+	
+	
+}
+
+public Action Timer_Poison(Handle hTimer, DataPack hPack) {
+	hPack.Reset();
+	CCSPlayer p = CCSPlayer.FromUserId(hPack.ReadCell());
+	
+	// User disconnected
+	if(p.IsNull) {
+		g_hPoisonTimer[hPack.ReadCell()] = null;
+		return Plugin_Stop;
+	}
+	else {
+		// If the random number is less than the % chance of stopping,
+		// OR
+		// User has healed through other means,
+		// Poison should stop.
+		if(GetRandomInt(0, 100) < g_hPoisonStopChance.IntValue || g_iLastHealth[p.Index] < p.Health) {
+			PrintToChat(p.Index, PREFIX ... "Your poison has been cured.");
+			p.SetRenderColor(g_iPrePoisonColor[p.Index]);
+			g_hPoisonTimer[p.Index] = null;
+			return Plugin_Stop;
+		}
+		p.Health = p.Health - g_hPoisonDmg.IntValue;
+		g_iLastHealth[p.Index] = p.Health;
+		return Plugin_Continue;
+	}
 }
