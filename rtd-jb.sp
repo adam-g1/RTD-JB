@@ -33,7 +33,6 @@ ArrayList g_hEffects;
 
 bool g_bBetweenRounds = false;
 
-
 // Ids for Rolls that need special resets
 int g_iBlindId;
 int g_iLowGravId;
@@ -412,7 +411,7 @@ public Action Event_RoundStart(Event hEvent, const char[] sName, bool bDontBroad
 public Action Event_RoundEnd(Event hEvent, const char[] sName, bool bDontBroadcast) {
 	g_bBetweenRounds = true;
 	// Reset players for 
-	for(CCSPlayer p = CCSPlayer(1); !p.IsNull; CCSPlayer.Next(p)) {
+	for(CCSPlayer p = CCSPlayer(0); CCSPlayer.Next(p);) {
 		if(p.InGame) {
 			ResetPlayer(p);
 		}
@@ -789,7 +788,7 @@ public void Roll_FallDamage(CCSPlayer p) {
 
 public void Roll_Model(CCSPlayer pRoller) {
 	// Loop until we find a valid CT to steal their model
-	for(CCSPlayer p = CCSPlayer(1); !p.IsNull; CCSPlayer.Next(p)) {
+	for(CCSPlayer p = CCSPlayer(0); CCSPlayer.Next(p);) {
 		
 		// Player in Game & CT
 		if(p.InGame && p.Team == CS_TEAM_CT) {
