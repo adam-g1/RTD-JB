@@ -50,6 +50,7 @@ Handle g_hPoisonTimer[MAXPLAYERS + 1];
 
 int g_iPrePoisonColor[MAXPLAYERS + 1][4];
 int g_iLastHealth[MAXPLAYERS + 1];
+int g_iAlpha[MAXPLAYERS + 1];
 // CSGO ConVars used
 ConVar g_hMaxMoney;
 
@@ -326,16 +327,31 @@ public Action Command_Inspect(int iClient, const char[] sCmd, int iArgs) {
 	
 	// User has invis and hasn't used it yet.
 	if(g_bHasInvis[iClient]) {
+		
+		PrintToChat(iClient, "You start to fade....");
+		
+		g_bHasInvis[iClient] = false;
+		
 		DataPack hPack = new DataPack();
-		hPack.WriteCell(GetClientUserId(iClient));
-		hPack.WriteCell(iClient);
 		
 		// Alpha only works when using RENDER_TRANSALPHA
-		CCSPlayer(iClient).Render = RENDER_TRANSALPHA;
-		g_hInvisTimer[iClient] = CreateDataTimer(0.1, Timer_IncreaseInvis, hPack);
+		CCSPlayer p = CCSPlayer(iClient);
+		p.Render = RENDER_TRANSALPHA;
+		g_iAlpha[iClient] = 255;
+		
+		g_hInvisTimer[iClient] = CreateDataTimer(0.5, Timer_IncreaseInvis, hPack, TIMER_REPEAT);
+		hPack.WriteCell(GetClientUserId(iClient));
+		hPack.WriteCell(iClient);
 		TriggerTimer(g_hInvisTimer[iClient]);
 	}
 }
+
+/*
+ * CCSPlayer.GetRenderColor gives somewhat garbage values.
+ * They will give extremely large numbers, even directly after
+ * setting using CCSPlayer.SetRenderColor.
+ * We're just going to use a global to figure out the alpha value.
+ */
 
 public Action Timer_IncreaseInvis(Handle hTimer, DataPack hPack) {
 	hPack.Reset();
@@ -353,18 +369,19 @@ public Action Timer_IncreaseInvis(Handle hTimer, DataPack hPack) {
 		
 		// Lower alpha value to make more invisible
 		iColor[3] -= 20;
+		g_iAlpha[p.Index] -= 20;
 		
 		// If player is fully invisible
-		if(iColor[3] <= 0) {
+		if(g_iAlpha[p.Index] <= 0) {
 			// Clamp to 0 before setting color
 			iColor[3] = 0;
 			p.SetRenderColor(iColor);
 			
 			// Create new timer to remove invisibility
 			DataPack hCopy = new DataPack();
+			g_hInvisTimer[p.Index] = CreateDataTimer(g_hInvisTime.FloatValue, Timer_RemoveInvis, hCopy);
 			hCopy.WriteCell(p.UserID);
 			hCopy.WriteCell(p);
-			g_hInvisTimer[p.Index] = CreateDataTimer(g_hInvisTime.FloatValue, Timer_RemoveInvis, hCopy);
 			
 			return Plugin_Stop;
 		}
@@ -389,6 +406,7 @@ public Action Timer_RemoveInvis(Handle hTimer, DataPack hPack) {
 		// Get color first, then change alpha.
 		// This makes it so if another plugin changed color, we don't override it.
 		int iColor[4];
+		p.GetRenderColor(iColor);
 		iColor[3] = 255;
 		p.SetRenderColor(iColor);
 	}
@@ -584,13 +602,13 @@ public Action Command_ForceRoll(int iClient, int iArgs) {
 	
 	// Print roll given
 	char sName[MAX_ROLL_LEN];
-	DataPack hPack = g_hEffects.Get(iIndex, BLOCK_NAME);
+	DataPack hPack = g_hEffects.Get(iFind, BLOCK_NAME);
 	hPack.Reset();
 	hPack.ReadString(sName, sizeof(sName));
 	ReplyToCommand(iClient, "Forcing roll to %s", sName);
 	
 	// Get callback to call
-	hPack = g_hEffects.Get(iIndex, BLOCK_CALLBACK);
+	hPack = g_hEffects.Get(iFind, BLOCK_CALLBACK);
 	hPack.Reset();
 	
 	// Give them the roll
@@ -606,11 +624,11 @@ public void Roll_DoNothing(CCSPlayer p) {
 }
 
 public void Roll_IncreaseHp(CCSPlayer p) {
-	p.Health = GetRandomInt(g_hIncreaseHpMin.IntValue, g_hIncreaseHpMax.IntValue);
+	p.Health = p.Health + GetRandomInt(g_hIncreaseHpMin.IntValue, g_hIncreaseHpMax.IntValue);
 }
 
 public void Roll_DecreaseHp(CCSPlayer p) {
-	p.Health = GetRandomInt(g_hDecreaseHpMin.IntValue, g_hDecreaseHpMax.IntValue);
+	p.Health = p.Health - GetRandomInt(g_hDecreaseHpMin.IntValue, g_hDecreaseHpMax.IntValue);
 }
 
 public void Roll_RandomHp(CCSPlayer p) {
@@ -645,7 +663,7 @@ public void Roll_Blindness(CCSPlayer p) {
 	PbSetInt(hMsg, "duration", 5000); // TODO: find correct duration
 	PbSetInt(hMsg, "hold_time", 1500); // TODO: find correct hold time
 	PbSetInt(hMsg, "flags", 0x0008 | 0x0010); // STAYOUT | PURGE
-	PbSetColor(hMsg, "clr", {255, 255, 255, 100}); // TODO: Double check color. Make blindness amount random?
+	PbSetColor(hMsg, "clr", {0, 0, 0, 100}); // TODO: Double check color. Make blindness amount random?
 	EndMessage();
 }
 
