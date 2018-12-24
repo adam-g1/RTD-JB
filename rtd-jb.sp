@@ -489,7 +489,7 @@ public Action Command_RtdChances(int iClient, int iArgs) {
 	for(int i = 0; i < hNames.Length; i++) {
 		char sName[MAX_ROLL_LEN];
 		hNames.GetString(i, sName, sizeof(sName));
-		PrintToConsole(iClient, "%d %s %.2f%%", i, sName, hTickets.Get(i) / float(hNames.Length) * 100.0);
+		PrintToConsole(iClient, "%d %s %.2f%%", i, sName, float(hTickets.Get(i)) / float(hNames.Length) * 100.0);
 	}
 	
 	// Notify check for console if command was from chat
