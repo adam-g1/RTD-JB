@@ -754,7 +754,7 @@ public void Roll_Lottery(CCSPlayer p) {
 	int iMoney = p.Money;
 	
 	// divided by 100 for pretty numbers only
-	int iAmount = GetRandomInt(g_hLotteryMin.IntValue, g_hLotteryMax.IntValue) / 100;
+	int iAmount = GetRandomInt(g_hLotteryMin.IntValue, g_hLotteryMax.IntValue) / 100 * 100;
 	
 	// Ensure player doesn't exceed mp_maxmoney value
 	iMoney = Min(iMoney + iAmount, g_hMaxMoney.IntValue);
@@ -768,7 +768,7 @@ public void Roll_Robbery(CCSPlayer p) {
 	int iMoney = p.Money;
 	
 	// divided by 100 for pretty numbers only
-	int iAmount = GetRandomInt(g_hRobberyMin.IntValue, g_hRobberyMax.IntValue) / 100;
+	int iAmount = GetRandomInt(g_hRobberyMin.IntValue, g_hRobberyMax.IntValue) / 100 * 100;
 	
 	// Ensure player doesn't underflow
 	iMoney = Max(iMoney - iAmount, 0);
