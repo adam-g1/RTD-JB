@@ -282,9 +282,9 @@ public void OnClientDisconnect(int iClient) {
 
 public Action OnTakeDamageAlive(int iVictim, int &iAttacker, int &iInflictor, float &fDmg,
 		int &iDmgType, int &iWeapon, float fDmgForce[3], float fDmgPos[3], int iDmgCustom) {
-			
 	// If fall damage and user has Long Fall Boots
-	if(iDmgType & DMG_FALL && g_iRoll[iAttacker] == g_iFallId) {
+	
+	if(iDmgType & DMG_FALL && g_iRoll[iVictim] == g_iFallId) {
 		
 		// Damage should be negated
 		if(fDmg < g_hMaxFallNegate.FloatValue) {
