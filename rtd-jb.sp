@@ -225,7 +225,7 @@ public void OnPluginStart() {
 							"How many snowballs to give");
 							
 	g_hLowGrav = AutoExecConfig_CreateConVar("sm_rtd_low_grav_amount", 
-							"0.9", 
+							"0.775", 
 							"Gravity to use for low grav (1.0 = normal)");
 							
 	g_hMaxFallNegate = AutoExecConfig_CreateConVar("sm_rtd_fall_negate_dmg",
