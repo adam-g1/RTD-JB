@@ -245,7 +245,7 @@ public void OnPluginStart() {
 							"Percentage of damage to give after reducing damage\n0.70 = give 70% of damage");
 							
 	g_hPoisonInterval = AutoExecConfig_CreateConVar("sm_rtd_poison_interval",
-							"0.2",
+							"1.0",
 							"How often poison should damage in seconds");
 	
 	g_hPoisonStopChance = AutoExecConfig_CreateConVar("sm_rtd_poison_cure_chance",
