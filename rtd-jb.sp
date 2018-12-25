@@ -537,10 +537,8 @@ int CreateEffect(const char[] sName, int iTickets, OnRoll callback) {
 		g_hEffects.Set(iIndex, hNamePack, BLOCK_NAME);
 	}
 	
-	// Increment for next effect
-	iId++;
-	
-	return iId;
+	// Return iId and increment for next effect
+	return iId++;
 }
 
 void ResetPlayer(CCSPlayer p) {
