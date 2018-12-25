@@ -831,10 +831,9 @@ public void Roll_Poisoned(CCSPlayer p) {
 	g_iLastHealth[p.Index] = p.Health;
 	
 	DataPack hPack = new DataPack();
+	g_hPoisonTimer[p.Index] = CreateDataTimer(g_hPoisonInterval.FloatValue, Timer_Poison, hPack, TIMER_REPEAT);
 	hPack.WriteCell(p.UserID);
 	hPack.WriteCell(p);
-	g_hPoisonTimer[p.Index] = CreateDataTimer(g_hPoisonInterval.FloatValue, Timer_Poison, hPack);
-	
 	
 }
 
