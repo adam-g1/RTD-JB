@@ -598,6 +598,8 @@ public Action Command_ForceRoll(int iClient, int iArgs) {
 		return Plugin_Handled;
 	}
 	
+	g_iRoll[iClient] = iIndex;
+	
 	// Print roll given
 	char sName[MAX_ROLL_LEN];
 	DataPack hPack = g_hEffects.Get(iFind, BLOCK_NAME);
