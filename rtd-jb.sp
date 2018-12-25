@@ -216,7 +216,7 @@ public void OnPluginStart() {
 							"500", 
 							"Maximum lottery amount");
 							
-	g_hRobberyMax = AutoExecConfig_CreateConVar("sm_rtd_robbery_min", 
+	g_hRobberyMax = AutoExecConfig_CreateConVar("sm_rtd_robbery_max", 
 							"3500", 
 							"Maximum lottery amount");
 							
