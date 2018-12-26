@@ -48,6 +48,9 @@ bool g_bHasInvis[MAXPLAYERS + 1];
 Handle g_hInvisTimer[MAXPLAYERS + 1];
 Handle g_hPoisonTimer[MAXPLAYERS + 1];
 
+// timestamp of round start
+int g_iRoundStart;
+
 int g_iPrePoisonColor[MAXPLAYERS + 1][4];
 int g_iLastHealth[MAXPLAYERS + 1];
 int g_iAlpha[MAXPLAYERS + 1];
@@ -80,6 +83,9 @@ ConVar g_hRubberBulletReduce;
 ConVar g_hPoisonInterval;
 ConVar g_hPoisonStopChance;
 ConVar g_hPoisonDmg;
+ConVar g_hMoneyPrice;
+ConVar g_hLimitTeams;
+ConVar g_hTimeLimit;
 
 public void OnPluginStart() {
 	g_hEffects = new ArrayList(3);
@@ -261,6 +267,18 @@ public void OnPluginStart() {
 							"5",
 							"Amount of damage each tick of poison does");
 							
+	g_hMoneyPrice = AutoExecConfig_CreateConVar("sm_rtd_money_price", 
+							"1000",
+							"Price to RTD using in game money");
+							
+	g_hLimitTeams = AutoExecConfig_CreateConVar("sm_rtd_limitteams",
+							"1",
+							"If set to 1, only Ts can use sm_rtd");
+						
+	g_hTimeLimit = AutoExecConfig_CreateConVar("sm_rtd_time_limit",
+							"30",
+							"How long into the round users can RTD (In seconds)");
+	
 	AutoExecConfig_ExecuteFile();
 	AutoExecConfig_CleanFile();
 	
@@ -424,6 +442,7 @@ public Action Event_PlayerDeath(Event hEvent, const char[] sName, bool bDontBroa
 
 public Action Event_RoundStart(Event hEvent, const char[] sName, bool bDontBroadcast) {
 	g_bBetweenRounds = false;
+	g_iRoundStart = GetTime();
 }
 
 public Action Event_RoundEnd(Event hEvent, const char[] sName, bool bDontBroadcast) {
@@ -449,6 +468,29 @@ public Action Command_Rtd(int iClient, int iArgs) {
 		JB_ReplyToCommand(iClient, PREFIX ... "{RED}You cannot rtd between rounds!");
 		return Plugin_Handled;
 	}
+	
+	// Past time to rtd
+	if(GetTime() > g_iRoundStart + g_hTimeLimit.IntValue) {
+		JB_ReplyToCommand(iClient, PREFIX ... "{RED}Its too late to rtd!");
+		return Plugin_Handled;
+	}
+	
+	// If teams are limited and user isn't a T (Or is spectatr)
+	CCSPlayer p = CCSPlayer(iClient);
+	if(p.Team == CS_TEAM_SPECTATOR || (g_hLimitTeams.BoolValue && p.Team != CS_TEAM_T)) {
+		JB_ReplyToCommand(iClient, PREFIX ... "{RED}You must be a T to rtd!");
+		return Plugin_Handled;
+	}
+	
+	int iMoney = p.Money;
+	
+	// User doesn't have enough money
+	if(g_hMoneyPrice.IntValue > iMoney) {
+		JB_ReplyToCommand(iClient, "{RED}You must have at least {GREEN}$%d {RED}to rtd!", g_hMoneyPrice.IntValue);
+		return Plugin_Handled;
+	}
+	
+	p.Money = iMoney - g_hMoneyPrice.IntValue;
 	
 	// Gets a random effect
 	int iIndex = GetRandomInt(0, g_hEffects.Length - 1);
