@@ -42,7 +42,7 @@ int g_iBurningBulletId;
 int g_iRubberBulletId;
 
 // Stores the Unique ID of the roll the player rolled.
-int g_iRoll[MAXPLAYERS + 1];
+int g_iRoll[MAXPLAYERS + 1] = {-1, ...};
 
 bool g_bHasInvis[MAXPLAYERS + 1];
 Handle g_hInvisTimer[MAXPLAYERS + 1];
