@@ -391,6 +391,9 @@ public Action Timer_IncreaseInvis(Handle hTimer, DataPack hPack) {
 		
 		// If player is fully invisible
 		if(g_iAlpha[p.Index] <= 0) {
+			
+			JB_PrintToChat(p.Index, "{GREEN}You are now fully invisible.");
+			
 			// Clamp to 0 before setting color
 			iColor[3] = 0;
 			p.SetRenderColor(iColor);
@@ -421,6 +424,9 @@ public Action Timer_RemoveInvis(Handle hTimer, DataPack hPack) {
 		return Plugin_Stop;
 	}
 	else {
+		
+		JB_PrintToChat(p.Index, "{GREEN}You are no longer invisible.");
+		
 		// Get color first, then change alpha.
 		// This makes it so if another plugin changed color, we don't override it.
 		int iColor[4];
