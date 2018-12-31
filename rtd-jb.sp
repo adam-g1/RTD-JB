@@ -47,6 +47,7 @@ int g_iRoll[MAXPLAYERS + 1] = {-1, ...};
 bool g_bHasInvis[MAXPLAYERS + 1];
 Handle g_hInvisTimer[MAXPLAYERS + 1];
 Handle g_hPoisonTimer[MAXPLAYERS + 1];
+bool g_bHasModel[MAXPLAYERS + 1];
 
 // timestamp of round start
 int g_iRoundStart;
@@ -119,7 +120,7 @@ public void OnPluginStart() {
 	CreateEffect("Wrench", 2, Roll_Wrench);
 	CreateEffect("Axe", 2, Roll_Axe);
 	CreateEffect("Hammer", 2, Roll_Hammer);
-	CreateEffect("Knife", 2, Roll_Knife);
+	//CreateEffect("Knife", 2, Roll_Knife);
 	CreateEffect("Snowballs", 2, Roll_Snowballs); // TODO: Find model that needs to be precached
 	g_iRubberBulletId = CreateEffect("Rubber Bullets", 2, Roll_RubberBullets); 
 	g_iBurningBulletId = CreateEffect("Burning Bullets", 2, Roll_BurningBullets);
@@ -342,7 +343,6 @@ public void OnAlphaChange(ConVar hCvar, const char[] sOld, const char[] sNew) {
 }
 
 public Action Command_Inspect(int iClient, const char[] sCmd, int iArgs) {
-	
 	// User has invis and hasn't used it yet.
 	if(g_bHasInvis[iClient]) {
 		
@@ -361,6 +361,9 @@ public Action Command_Inspect(int iClient, const char[] sCmd, int iArgs) {
 		hPack.WriteCell(GetClientUserId(iClient));
 		hPack.WriteCell(iClient);
 		TriggerTimer(g_hInvisTimer[iClient]);
+	}
+	else if(g_bHasModel[iClient]) {
+		GiveModel(CCSPlayer(iClient));
 	}
 }
 
@@ -618,6 +621,8 @@ void ResetPlayer(CCSPlayer p) {
 	
 	delete g_hPoisonTimer[p.Index];
 	
+	g_bHasModel[p.Index] = false;
+	
 	g_iRoll[p.Index] = -1;
 }
 
@@ -852,12 +857,17 @@ public void Roll_FallDamage(CCSPlayer p) {
 	// Do Nothing
 }
 
-public void Roll_Model(CCSPlayer pRoller) {
+public void Roll_Model(CCSPlayer p) {
+	g_bHasModel[p.Index] = true;
+	JB_PrintToChat(p.Index, PREFIX ... "{ORANGE}Press inspect to change your model");
+}
+
+void GiveModel(CCSPlayer pRoller) {
 	// Loop until we find a valid CT to steal their model
 	for(CCSPlayer p = CCSPlayer(0); CCSPlayer.Next(p);) {
 		
 		// Player in Game & CT
-		if(p.InGame && p.Team == CS_TEAM_CT) {
+		if(p.InGame && p.Alive && p.Team == CS_TEAM_CT) {
 			
 			// Get model of CT
 			char sModel[PLATFORM_MAX_PATH];
@@ -869,6 +879,8 @@ public void Roll_Model(CCSPlayer pRoller) {
 			break;
 		}
 	}
+	JB_PrintToChat(pRoller.Index, PREFIX ... "{GREEN}You were changed to a guard model");
+	g_bHasModel[pRoller.Index] = false;
 }
 
 public void Roll_Poisoned(CCSPlayer p) {
