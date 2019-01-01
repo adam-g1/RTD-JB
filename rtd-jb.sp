@@ -289,6 +289,12 @@ public void OnPluginStart() {
 			OnClientPutInServer(i);
 		}
 	}
+	OnMapStart();
+}
+
+public void OnMapStart() {
+	// When setting Heavy Armor, model is changed.
+	PrecacheModel("models/player/custom_player/legacy/tm_phoenix_heavy.mdl");
 }
 
 public void OnClientPutInServer(int iClient) {
@@ -735,9 +741,16 @@ public void Roll_SmallArmor(CCSPlayer p) {
 }
 
 public void Roll_HeavyArmor(CCSPlayer p) {
+	// Save old model, since setting heavy armor changes the model.
+	char sModel[PLATFORM_MAX_PATH];
+	p.GetModel(sModel, sizeof(sModel));
+	
 	p.Armor = 10; // Not a typo, low armor so after some damage the armor will go away
 	p.Helmet = true;
 	p.HeavyArmor = true;
+	
+	// Restore old model
+	p.SetModel(sModel);
 }
 
 public void Roll_Grenades(CCSPlayer p) {
