@@ -754,7 +754,7 @@ public void Roll_HeavyArmor(CCSPlayer p) {
 }
 
 public void Roll_Grenades(CCSPlayer p) {
-	switch(GetRandomInt(0, 7)) {
+	switch(GetRandomInt(0, 6)) {
 		case 0: {
 			GivePlayerWeapon(p, "weapon_flashbang");
 			GivePlayerWeapon(p, "weapon_hegrenade");
